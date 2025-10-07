@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native (generisano)
+ios/
+android/
+*.keystore
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Build/Cache
+.metro-health-check*
+.gradle/
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# OS / Editors
+.DS_Store
+.vscode/
+.idea/
+
+# Local env files
+.env*.local
+
+# TypeScript
+*.tsbuildinfo
+
+app-example
