@@ -1,24 +1,16 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
+//Ovdje stavljam zasad 8.10.25 da nema status bara
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <View style={{flex:1, backgroundColor:"#1C1D18"}}>
+      <StatusBar style="light" backgroundColor="#1C1D18"></StatusBar>
+      <Stack screenOptions={{
+        headerShown: false,               //Da se ukloni header
+        contentStyle: { backgroundColor: "#1C1D18"}       //Postavlja boju na onu koju smo odredili da ce biti
+      }}></Stack>
+    </View>
   );
 }
