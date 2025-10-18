@@ -3,14 +3,15 @@ import { Image } from "expo-image";
 import { router } from "expo-router"; 
 import NotificationCard, { Announcement } from "../app/NotificationCard";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BarcodeNavBar from "../components/BarcodeNavBar";
 
 
 const SHEET_MIN = 88;
 
 const mock: Announcement[] = [
-  { id: "1", title: "Radno vrijeme", body: "Danas radimo do 22:00.", created_at: new Date().toISOString() },
-  { id: "2", title: "Novi program", body: "Uveden HIIT termin subotom od 10h.", created_at: new Date(Date.now()-86400000).toISOString() },
-  { id: "3", title: "Akcija", body: "20% popusta na tromjesečnu članarinu.", created_at: new Date(Date.now()-2*86400000).toISOString() },
+  { id: "1", title: "Radno vrijeme", body: "Danas radimo do 22:00.", created_at: new Date().toISOString(), image: require("../assets/images/p1.jpg") },
+  { id: "2", title: "Novi program", body: "Uveden HIIT termin subotom od 10h.", created_at: new Date(Date.now()-86400000).toISOString(), image: require("../assets/images/p2.webp") },
+  { id: "3", title: "Akcija", body: "20% popusta na tromjesečnu članarinu.", created_at: new Date(Date.now()-2*86400000).toISOString(), image: require("../assets/images/p3.webp") },
 ];
 export default function Index() {
    const expireText = "Članarina ističe 30.10.2025";
@@ -58,13 +59,25 @@ export default function Index() {
         renderItem={({ item }) => (
           <NotificationCard
             item={item}
-            onPress={() => router.push(`/obavijest/${item.id}`)} // detalj (opciono)
-          />
+            onPress={() =>
+              router.push({
+                pathname: "/obavijest",
+                params: {
+                  id: item.id,
+                  title: item.title,
+                  body: item.body,
+                  created_at: item.created_at,
+                  image: item.image, // radi s require – ne šalje se preko URL-a, ali expo-router to propusti
+               },
+            })
+            }
+/>
         )}
         contentContainerStyle={{ paddingTop: 12, paddingBottom: SHEET_MIN + 24 }}
         refreshControl={<RefreshControl refreshing={false} onRefresh={() => {/* kasnije: refetch */}} tintColor="#FEFEFD" />}
         showsVerticalScrollIndicator={false}
       />
+      <BarcodeNavBar onPress={() => router.push("/barcode")} title="Moj barkod" />
     </SafeAreaView>
     
   );
