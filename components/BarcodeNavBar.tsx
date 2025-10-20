@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
   },
   card: {
     height: HEIGHT,
-    backgroundColor: "rgba(207, 254, 69, 0.95)", // tvoja žuta
+    backgroundColor: "rgba(250, 240, 67, 0.95)", // tvoja žuta
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     alignItems: "center",

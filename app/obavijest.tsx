@@ -26,6 +26,14 @@ export default function ObavijestDetalj() {
         ) : null}
 
         <View style={st.content}>
+          {image ? (
+    <Image
+      source={require("../assets/images/p1.jpg")}
+      style={st.inlineImg}
+      contentFit="cover"
+      transition={120}
+    />
+  ) : null}
           <Text style={st.title}>{title}</Text>
           <Text style={st.date}>{d}</Text>
           <Text style={st.body}>{body}</Text>
@@ -39,7 +47,18 @@ const st = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#1C1D18" },
   hero: { width: "100%", height: 240 },
   content: { padding: 16 },
-  title: { color: "#FEFEFD", fontSize: 22, fontWeight: "800", marginBottom: 6 },
+  title: { 
+    color: "#FEFEFD", 
+    fontSize: 22,
+     fontWeight: "800", 
+     marginBottom: 6 
+    },
   date: { color: "#CDCCC7", opacity: 0.8, marginBottom: 14 },
   body: { color: "#FEFEFD", lineHeight: 22, fontSize: 16 },
+  inlineImg: {
+  width: "100%",
+  height: 200,
+  borderRadius: 12,
+  marginBottom: 12,
+},
 });

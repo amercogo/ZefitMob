@@ -1,3 +1,4 @@
+
 import { Text, View, StyleSheet, Pressable, FlatList, RefreshControl  } from "react-native";
 import { Image } from "expo-image";
 import { router } from "expo-router"; 
@@ -113,11 +114,7 @@ const styles = StyleSheet.create({
   borderRadius: 12,                
   alignItems: "center",             
   justifyContent: "center",         
-
- 
-  backgroundColor: "rgba(207, 254, 69, 0.70)",
-  
-
+  backgroundColor: "rgba(250, 240, 67, 0.7)",
   borderWidth: StyleSheet.hairlineWidth,
   borderColor: "rgba(255,255,255,0.10)",
   marginLeft: 30
@@ -133,14 +130,14 @@ avatarImg: {
     flex: 1,                       
     height: TILE,
     borderRadius: 12,
-    backgroundColor: "rgba(207, 254, 69, 0.70)", 
+    backgroundColor: "rgba(250, 240, 67, 0.70)", 
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.10)",
     paddingHorizontal: 12,
     justifyContent: "center",
     marginTop: 15,
-    marginRight:55,
-    marginBottom: 30
+    marginBottom: 30,
+    marginRight:31
   },
   membershipTitle: { color: "#1C1D18", fontSize: 14, fontWeight: "700", textAlign:"center" },
   membershipSubtitle: { color: "#1C1D18", fontSize: 12, marginTop: 2, textAlign:"center" },
@@ -148,8 +145,9 @@ avatarImg: {
    rowTiles: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 0,
-    gap: 20, 
+    justifyContent: "space-between",
+    gap: 20,
+    marginBottom:-20
   },
 });
 
@@ -159,6 +157,6 @@ const textStil = StyleSheet.create({
     fontWeight: 600,
     color: "#FFFAFA",
     marginTop: 10,
-    marginLeft: 30
+    marginLeft: 40
   },
 });

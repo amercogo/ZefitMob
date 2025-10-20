@@ -1,6 +1,13 @@
 import { View, Text, StyleSheet, TextInput, Pressable } from "react-native";
 import { Image } from "expo-image";
+import { router  } from "expo-router";
 
+const onLogout = async () => {
+  // (opcionalno) obriši token/sesiju:
+  // await AsyncStorage.removeItem("authToken").catch(() => {});
+
+  router.replace("/login"); // vrati na login i ukloni current screen iz stacka
+};
 export default function Profile() {
   return (
     <View style={s.screen}>
@@ -42,7 +49,7 @@ export default function Profile() {
 
       {/* Akcije na dnu */}
       <View style={s.footer}>
-        <Pressable style={s.logoutBtn} onPress={() => { /* TODO: sign out */ }}>
+        <Pressable style={s.logoutBtn}  onPress={onLogout}>
           <Text style={s.logoutTxt}>Odjava</Text>
         </Pressable>
 
@@ -57,12 +64,12 @@ export default function Profile() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#1C1D18", padding: 16 },
   header: { alignItems: "center", marginTop: 80, marginBottom: 16 },
-  avatar: { width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(207, 254, 69, 0.70)" },
+  avatar: { width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(250, 240, 67, 0.90)" },
 
   form: { gap: 8 },
   label: { color: "#CDCCC7", fontSize: 13, marginTop: 6 },
   input: {
-    backgroundColor: "rgba(207, 254, 69, 0.70)",
+    backgroundColor: "rgba(250, 240, 67, 0.90)",
     color: "#1C1D18",
     borderRadius: 12,
     paddingHorizontal: 12,
@@ -72,7 +79,7 @@ const s = StyleSheet.create({
   },
 
   resetBtn: {
-    alignSelf: "flex-start",
+    alignSelf: "center",
     marginTop: 10,
     backgroundColor: "#3E3F3A",
     borderRadius: 10,
@@ -83,13 +90,14 @@ const s = StyleSheet.create({
   },
   resetTxt: { color: "#FEFEFD", fontWeight: "600" },
 
-  footer: { marginTop: "auto", alignItems: "center", gap: 12 },
+  footer: {  flexDirection: "row",flex: 1, marginTop:-180, alignItems: "center", justifyContent:"space-between" },
   logoutBtn: {
-    backgroundColor: "#CDFE45",
+    backgroundColor: "rgba(250, 240, 67, 0.90)",
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 20,
+    marginLeft:80,
   },
   logoutTxt: { color: "#101010", fontWeight: "700" },
-  deleteTxt: { color: "#D82121", fontSize: 13 },
+  deleteTxt: { color: "#D82121", fontSize: 13,marginRight:80, },
 });

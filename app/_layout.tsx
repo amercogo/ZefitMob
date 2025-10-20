@@ -7,7 +7,9 @@ export default function RootLayout() {
   return (
     <View style={{flex:1, backgroundColor:"#1C1D18"}}>
       <StatusBar style="light" backgroundColor="#1C1D18"></StatusBar>
-      <Stack screenOptions={{
+      <Stack 
+      initialRouteName="login"
+       screenOptions={{
         headerShown: false,               //Da se ukloni header
         contentStyle: { backgroundColor: "#1C1D18"}       //Postavlja boju na onu koju smo odredili da ce biti
       }}></Stack>
