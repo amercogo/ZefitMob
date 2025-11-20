@@ -1,50 +1,228 @@
-# Welcome to your Expo app 👋
+# 📱 ZeFit Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Mobilna aplikacija za članove ZeFit teretane.
+Povezana je direktno na Supabase backend koji koristi i ZeFit Admin Panel.
 
-## Get started
+Aplikacija omogućava članovima:
 
-1. Install dependencies
+- registraciju i login (Supabase Auth)
 
-   ```bash
-   npm install
-   ```
+- pregled članarine i paketa
 
-2. Start the app
+- pregled dolazaka i uplata
 
-   ```bash
-   npx expo start
-   ```
+- primanje objava od strane admina
 
-In the output, you'll find options to open the app in a
+- uređivanje vlastitog profila
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- prikaz unikatnog barkoda koji se skenira pri ulasku u teretanu
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+> Frontend: Expo + React Native + TypeScript
+> Backend: Supabase (Auth, Database, Storage, RLS)
 
-## Get a fresh project
+# ✨ Features
+## 🔐 Auth – Registracija & Login
 
-When you're ready, run:
+- registracija novih članova
 
-```bash
-npm run reset-project
-```
+- login preko email + password
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- session čuvanje i automatsko osvježavanje sesije
 
-## Learn more
+- integracija sa Supabase RLS – svaki korisnik vidi samo svoje podatke
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🏋️‍♂️ Moj profil
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Korisnik može vidjeti i uređivati:
 
-## Join the community
+- ime i prezime
 
-Join our community of developers creating universal apps.
+- email
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- broj telefona
+
+- avatar (upload u Storage)
+
+- clan_kod (npr. ZE-123456)
+
+- datum učlanjenja
+
+- status članarine (active / pending / expired)
+
+## 🧾 Članarine i paketi
+
+Aplikacija prikazuje sve podatke iz clanarine_clanova:
+
+- aktivni paket
+
+- prošli paketi
+
+- cijena
+
+- period važenja
+
+- status paketa
+
+- automatski preračun statusa (expired / active / pending)
+
+Korisnik može vidjeti:
+
+- kada članarina ističe
+
+- koji paket trenutno koristi
+
+- historiju svih prethodnih paketa
+
+## 💳 Uplate
+
+Podaci iz tabele placanja:
+
+- datum uplate
+
+- iznos
+
+- način plaćanja (keš, kartica — kasnije)
+
+- na koji paket je uplata vezana
+
+- Sve prikazano u čistom i preglednom UI-u.
+
+## 📅 Dolasci
+
+Lista svih dolazaka iz tabele dolasci:
+
+- vrijeme ulaska
+
+- vrijeme izlaska
+
+- opcioni izračun trajanja boravka u teretani
+
+Uz to:
+
+- grafikon dolazaka za posljednjih 7 / 30 dana
+
+- broj ukupnih posjeta
+
+## 📰 Objave / Novosti
+
+Mobilna app prima sve objave kreirane u ZeFit Admin Panelu:
+
+- naslov
+
+- sadržaj
+
+- slika (ako postoji)
+
+- datum objave
+
+- Korisnik sve vidi u listi, kao mali feed.
+
+## 🪪 Digitalna članska kartica (Barcode)
+
+Na dnu korisničkog profila nalazi se digitalna kartica:
+
+- generisani barkod ili QR kod
+
+- jedinstveni za svakog člana (clan_kod)
+
+- koristi se za ulaz u teretanu
+
+- recepcija skenira kod i prati dolaske u realnom vremenu
+
+## 🧱 Tehnologije
+
+> Expo (React Native)
+
+> React Native Navigation
+
+> TypeScript
+
+> Supabase
+
+> Auth (login, registration)
+
+- Database (članovi, paketi, uplate, dolasci)
+
+- Storage (profilne slike)
+
+- Row Level Security (RLS)
+
+- Recharts / Victory za graf dolazaka
+
+- Zustand / Context API za globalni state
+
+## 🗄️ Struktura baze koju mobilna app koristi
+
+Mobilna aplikacija komunicira sa tabelama:
+
+- clanovi
+
+- clanarine_clanova
+
+- tipovi_clanarina
+
+- placanja
+
+- dolasci
+
+- posts
+
+### Sve je filtrirano preko RLS tako da član vidi samo svoje podatke.
+
+## ⚙️ Pokretanje projekta
+### 1. Kloniranje
+git clone https://github.com/<tvoj-username>/<mobile-repo>.git
+cd <mobile-repo>
+
+### 2. Instalacija
+npm install
+
+### 3. Env varijable
+
+Kreiraj .env ili koristi app.config.js:
+
+EXPO_PUBLIC_SUPABASE_URL=...
+EXPO_PUBLIC_SUPABASE_ANON_KEY=...
+
+### 4. Start development server
+npx expo start
+
+
+Skeniraj QR kod u Expo Go aplikaciji.
+
+## 📦 Build (Production)
+
+Korištenjem Expo EAS servisa:
+
+Android:
+eas build -p android
+
+iOS:
+eas build -p ios
+
+## 🔐 Sigurnost
+
+svi podaci ograničeni preko RLS pravila
+
+mobilna app ima samo "user" permissions
+
+admin panel ima admin role i koristi odvojene rute
+
+barkod se generiše i prikazuje ali nije moguće mijenjati ga ručno
+
+## 🧭 Roadmap ideje (moguće dodatno napraviti)
+
+push notifikacije (isticanje članarine, promocije)
+
+dark/light tema
+
+rezervacija treninga
+
+online plaćanje
+
+leaderboard najaktivnijih članova
+
+### 👨‍💻 Autor
+
+Mobilna aplikacija ZeFit razvijena je od strane studenta softverskog inženjerstva, uz saradnju sa ZeFit teretanom.
+Kod je pisan profesionalno, modularno i spreman za produkciju.
