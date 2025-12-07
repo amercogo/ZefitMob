@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   View,
@@ -9,28 +8,71 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Stack, router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAuth } from "../../providers/AuthProvider";
 
 export default function RegisterScreen() {
-// na vrhu komponente
-const [fullName, setFullName] = useState("");
-const [email, setEmail] = useState("");
-const [phone, setPhone] = useState("");
-const [pass, setPass] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pass, setPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const { signUpWithEmail, loading } = useAuth();
 
   const onSubmit = async () => {
-    if (!email || !pass) return Alert.alert("Popunite polja", "Unesite email i lozinku.");
-    setLoading(true);
-    try {
-      // TODO: tvoja registracija
-      router.replace("/");   // nakon registra idi na main
-    } finally {
-      setLoading(false);
+    // Validation
+    if (!fullName || !email || !pass) {
+      return Alert.alert("Popunite polja", "Unesite ime, email i lozinku.");
     }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return Alert.alert("Neispravan email", "Unesite ispravnu email adresu.");
+    }
+
+    // Validate password length
+    if (pass.length < 6) {
+      return Alert.alert("Kratka lozinka", "Lozinka mora imati najmanje 6 karaktera.");
+    }
+
+    // Validate password confirmation
+    if (pass !== confirmPass) {
+      return Alert.alert("Lozinke se ne poklapaju", "Potvrdite lozinku ponovo.");
+    }
+
+    // Sign up with Supabase and create member in clanovi table
+    const { error } = await signUpWithEmail(email, pass, {
+      ime_prezime: fullName,
+      telefon: phone || undefined,
+    });
+
+    if (error) {
+      Alert.alert(
+        "Greška pri registraciji",
+        error.message || "Došlo je do greške. Pokušajte ponovo."
+      );
+      return;
+    }
+
+    // Success - show message and redirect to login or main app
+    Alert.alert(
+      "Registracija uspješna",
+      "Vaš račun je kreiran. Možete se prijaviti.",
+      [
+        {
+          text: "OK",
+          onPress: () => {
+            // Auto-login after signup, so redirect to main app
+            router.replace("/");
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -40,14 +82,14 @@ const [pass, setPass] = useState("");
         {/* Gornji crni header sa logom */}
         <View style={s.header}>
           <Image
-            source={require("../assets/images/wa.png")}
+            source={require("../../assets/images/wa.png")}
             style={s.logo}
             contentFit="contain"
             transition={150}
           />
         </View>
 
-        {/* Donji zaobljeni “panel” sa gradientom */}
+        {/* Donji zaobljeni "panel" sa gradientom */}
         <View style={s.panelWrap}>
           <View style={s.notchBorder} />
           <View style={s.notch} />
@@ -123,17 +165,39 @@ const [pass, setPass] = useState("");
                   />
                 </View>
 
+                {/* Potvrda lozinke */}
+                <View style={s.field}>
+                  <TextInput
+                    style={s.input}
+                    placeholder="Potvrdite lozinku..."
+                    placeholderTextColor="#8E8E8E"
+                    secureTextEntry
+                    textContentType="password"
+                    autoComplete="new-password"
+                    value={confirmPass}
+                    onChangeText={setConfirmPass}
+                  />
+                </View>
+
 
             <View style={s.linksRow}>
               {/* ovo je ekran registracije → link vodi NA login */}
-              <Pressable onPress={() => router.push("/login")}>
+              <Pressable onPress={() => router.push("/(auth)/login")}>
                 <Text style={s.linkLeft}>Imate račun? Prijava</Text>
               </Pressable>
             </View>
 
             {/* DUGME */}
-            <Pressable style={({ pressed }) => [s.btn, pressed && { opacity: 0.9 }]} onPress={onSubmit} disabled={loading}>
-              <Text style={s.btnText}>{loading ? "Registrujem..." : "REGISTRACIJA"}</Text>
+            <Pressable
+              style={({ pressed }) => [s.btn, pressed && { opacity: 0.9 }, loading && s.btnDisabled]}
+              onPress={onSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#1C1D18" size="small" />
+              ) : (
+                <Text style={s.btnText}>REGISTRACIJA</Text>
+              )}
             </Pressable>
           </LinearGradient>
         </View>
@@ -267,5 +331,9 @@ const s = StyleSheet.create({
     marginHorizontal: 100,
     marginTop: 4,
   },
+  btnDisabled: {
+    opacity: 0.6,
+  },
   btnText: { color: "#1C1D18", fontWeight: "700" },
 });
+

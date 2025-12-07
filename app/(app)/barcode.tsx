@@ -16,7 +16,7 @@ export default function BarcodeScreen() {
       />
       <View style={styles.screen}>
         <Image
-          source={require("../assets/images/barkoddd.jpg")}
+          source={require("../../assets/images/barkoddd.jpg")}
           style={styles.bigBarcode}
           contentFit="contain"
           transition={120}

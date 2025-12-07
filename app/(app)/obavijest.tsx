@@ -28,7 +28,7 @@ export default function ObavijestDetalj() {
         <View style={st.content}>
           {image ? (
     <Image
-      source={require("../assets/images/p1.jpg")}
+      source={require("../../assets/images/p1.jpg")}
       style={st.inlineImg}
       contentFit="cover"
       transition={120}

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   View,
@@ -9,27 +8,44 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Stack, router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAuth } from "../../providers/AuthProvider";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { signInWithEmail, loading } = useAuth();
 
   const onSubmit = async () => {
-  if (!email || !pass) return Alert.alert("Popunite polja", "Unesite email i lozinku.");
-  setLoading(true);
-  try {
-    // TODO: ovdje ide tvoja autentikacija
-    // ako je sve ok -> idi na main (app/index.tsx)
-    router.replace("/");   // 👈 otvara root index.tsx
-  } finally {
-    setLoading(false);
-  }
-};
+    if (!email || !pass) {
+      return Alert.alert("Popunite polja", "Unesite email i lozinku.");
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return Alert.alert("Neispravan email", "Unesite ispravnu email adresu.");
+    }
+
+    // Sign in with Supabase
+    const { error } = await signInWithEmail(email, pass);
+
+    if (error) {
+      Alert.alert(
+        "Greška pri prijavi",
+        error.message || "Došlo je do greške. Pokušajte ponovo."
+      );
+      return;
+    }
+
+    // Success - redirect to main app
+    // The protected layout will handle the redirect automatically
+    router.replace("/");
+  };
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -37,14 +53,14 @@ export default function LoginScreen() {
         {/* Gornji crni header sa logom */}
         <View style={s.header}>
           <Image
-            source={require("../assets/images/wa.png")}
+            source={require("../../assets/images/wa.png")}
             style={s.logo}
             contentFit="contain"
             transition={150}
           />
         </View>
 
-        {/* Donji zaobljeni “panel” sa gradientom */}
+        {/* Donji zaobljeni "panel" sa gradientom */}
         <View style={s.panelWrap}>
            <View style={s.notchBorder} />
   {/* stvarni rez (crni) */}
@@ -83,13 +99,21 @@ export default function LoginScreen() {
             </View>
          <View style={s.linksRow}>
           <Text style={s.linkLeft}>Zaboravljena lozinka?</Text>
-           <Pressable onPress={() => router.push("/register")}>
+           <Pressable onPress={() => router.push("/(auth)/register")}>
           <Text style={s.linkRight}>Nemate račun?</Text>
           </Pressable>
           </View>
             {/* DUGME */}
-            <Pressable style={({ pressed }) => [s.btn, pressed && { opacity: 0.9 }]} onPress={onSubmit} disabled={loading}>
-              <Text style={s.btnText}>{loading ? "Prijava..." : "PRIJAVA"}</Text>
+            <Pressable
+              style={({ pressed }) => [s.btn, pressed && { opacity: 0.9 }, loading && s.btnDisabled]}
+              onPress={onSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#1C1D18" size="small" />
+              ) : (
+                <Text style={s.btnText}>PRIJAVA</Text>
+              )}
             </Pressable>
           </LinearGradient>
         </View>
@@ -100,8 +124,8 @@ export default function LoginScreen() {
 
 const PANEL_RADIUS = 28;
 const HEADER_BG = "#141410";      // boja headera (crna)
-const NOTCH_BASE = 120;           // širina baze “V” reza
-const NOTCH_HEIGHT = 80;          // visina “V” reza
+const NOTCH_BASE = 120;           // širina baze "V" reza
+const NOTCH_HEIGHT = 80;          // visina "V" reza
 const LOGO_W = 160;
 const LOGO_H = 110;
 
@@ -140,7 +164,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: PANEL_RADIUS * 1.5,
     paddingHorizontal: 22,
     paddingTop: 18,
-    // blagi “glow” žutog panela
+    // blagi "glow" žutog panela
     shadowColor: "#E6FF66",
     shadowOpacity: 0.35,
     shadowRadius: 18,
@@ -174,7 +198,7 @@ const s = StyleSheet.create({
     borderTopWidth: NOTCH_HEIGHT,
     borderLeftColor: "transparent",
     borderRightColor: "transparent",
-    borderTopColor: HEADER_BG,      // isto kao header -> izgleda kao “usjek”
+    borderTopColor: HEADER_BG,      // isto kao header -> izgleda kao "usjek"
     zIndex: 3,
   },
 
@@ -201,7 +225,7 @@ const s = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#FEFEFD",
     color: "#1C1D18",
-    // unutrašnji “soft” izgled
+    // unutrašnji "soft" izgled
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -238,5 +262,9 @@ linkRight: { marginRight:40,color: "rgba(28,29,24,0.65)", fontSize: 12, },
     marginHorizontal: 100,
     marginTop: 4,
   },
+  btnDisabled: {
+    opacity: 0.6,
+  },
   btnText: { color: "#1C1D18", fontWeight: "700" },
 });
+

@@ -33,6 +33,7 @@ yarn-error.*
 .idea/
 
 # Local env files
+.env
 .env*.local
 
 # TypeScript

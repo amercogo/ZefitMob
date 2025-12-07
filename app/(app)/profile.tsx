@@ -1,20 +1,23 @@
 import { View, Text, StyleSheet, TextInput, Pressable } from "react-native";
 import { Image } from "expo-image";
-import { router  } from "expo-router";
+import { router } from "expo-router";
+import { useAuth } from "../../providers/AuthProvider";
 
-const onLogout = async () => {
-  // (opcionalno) obriši token/sesiju:
-  // await AsyncStorage.removeItem("authToken").catch(() => {});
-
-  router.replace("/login"); // vrati na login i ukloni current screen iz stacka
-};
 export default function Profile() {
+  const { user, member, signOut } = useAuth();
+
+  const onLogout = async () => {
+    // Sign out using Supabase auth
+    await signOut();
+    // Redirect to login - the protected layout will handle this automatically
+    router.replace("/(auth)/login");
+  };
   return (
     <View style={s.screen}>
       {/* Profilna */}
       <View style={s.header}>
         <Image
-          source={require("../assets/images/user.png")}
+          source={require("../../assets/images/user.png")}
           style={s.avatar}
           contentFit="cover"
         />
@@ -23,7 +26,13 @@ export default function Profile() {
       {/* Podaci */}
       <View style={s.form}>
         <Text style={s.label}>Ime i prezime</Text>
-        <TextInput style={s.input} placeholder="Unesi ime i prezime" placeholderTextColor="#1C1D18" />
+        <TextInput 
+          style={s.input} 
+          placeholder="Unesi ime i prezime" 
+          placeholderTextColor="#1C1D18"
+          value={member?.ime_prezime || ""}
+          editable={false}
+        />
 
         <Text style={s.label}>Email</Text>
         <TextInput
@@ -32,14 +41,27 @@ export default function Profile() {
           placeholderTextColor="#1C1D18"
           keyboardType="email-address"
           autoCapitalize="none"
+          value={member?.email || user?.email || ""}
+          editable={false}
         />
 
-        <Text style={s.label}>Šifra</Text>
+        <Text style={s.label}>Telefon</Text>
         <TextInput
           style={s.input}
-          placeholder="********"
+          placeholder="+1234567890"
           placeholderTextColor="#1C1D18"
-          secureTextEntry
+          keyboardType="phone-pad"
+          value={member?.telefon || ""}
+          editable={false}
+        />
+
+        <Text style={s.label}>Član kod</Text>
+        <TextInput
+          style={s.input}
+          placeholder="CLAN-XXXX"
+          placeholderTextColor="#1C1D18"
+          value={member?.clan_kod || ""}
+          editable={false}
         />
 
         <Pressable style={s.resetBtn} onPress={() => { /* TODO: reset password */ }}>
