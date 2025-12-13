@@ -1,58 +1,167 @@
-// NotificationCard.tsx
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Image } from "expo-image";
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+} from 'react-native';
+import { Image } from 'expo-image';
 
-export type Announcement = { id:string; title:string; body:string; created_at:string; image?:any };
+export type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  created_at: string;
+  image: any;              // thumbnail za listu
+  imageUrl?: string | null; // originalni image_url iz Supabasea
+};
 
-export default function NotificationCard({ item, onPress }: { item: Announcement; onPress?: () => void }) {
-  const d = new Date(item.created_at).toLocaleDateString("bs-BA", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+interface Props {
+  item: Announcement;
+  onPress?: () => void;
+}
+
+export default function NotificationCard({ item, onPress }: Props) {
+  const dateLabel = new Date(item.created_at).toLocaleDateString('bs-BA', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 
   return (
-    <Pressable style={s.card} onPress={onPress} android_ripple={{ color: "rgba(255,255,255,0.06)" }}>
-      {/* Lijeva strana – tekst */}
-      <View style={s.textCol}>
-        <Text style={s.title} numberOfLines={1}>{item.title}</Text>
-        <Text style={s.body} numberOfLines={2}>{item.body}</Text>
-        <Text style={s.date}>{d}</Text>
-      </View>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.cardOuter,
+        pressed && styles.cardOuterPressed,
+      ]}
+    >
+      {/* Žuti prsten */}
+      <View style={styles.ring}>
+        {/* Unutrašnja kartica */}
+        <View style={styles.cardInner}>
 
-      {/* Desna strana – slika */}
-      <View style={s.imageWrap}>
-        <Image
-          source={item.image ?? require("../assets/images/p1.jpg")}
-          style={s.image}
-          contentFit="cover"
-          transition={150}
-        />
+          {/* Gornji dio: veća slika + tekst */}
+          <View style={styles.topRow}>
+            {/* Veća slika */}
+            <View style={styles.thumbWrapper}>
+              <Image
+                source={item.image}
+                style={styles.thumb}
+                contentFit="cover"
+                transition={150}
+              />
+            </View>
+
+            {/* Tekst */}
+            <View style={styles.textBlock}>
+              <Text numberOfLines={2} style={styles.title}>
+                {item.title}
+              </Text>
+
+              <Text numberOfLines={3} style={styles.body}>
+                {item.body}
+              </Text>
+            </View>
+          </View>
+
+          {/* Donji dio */}
+          <View style={styles.bottomRow}>
+            <Text style={styles.dateText}>{dateLabel}</Text>
+
+            {onPress && (
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>Detaljnije</Text>
+              </View>
+            )}
+          </View>
+
+        </View>
       </View>
     </Pressable>
   );
 }
 
-const CARD_H = 200;
-const s = StyleSheet.create({
-  card: {
-    flexDirection: "row",                    // tekst i slika u jednom redu
-    alignItems: "stretch",
-    backgroundColor: "#3E3F3A",
+const styles = StyleSheet.create({
+  cardOuter: {
+    marginBottom: 20,
+    borderRadius: 22,
+    paddingHorizontal: 20, // Smanjene margine → kartica šira
+  },
+  cardOuterPressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.95,
+  },
+  ring: {
+    borderRadius: 22,
+    padding: 2,
+    backgroundColor: 'rgba(250, 240, 67, 0.45)',
+  },
+  cardInner: {
     borderRadius: 20,
-    padding: 14,
-    marginBottom: 10,
-    marginLeft:15,
-    marginRight:15,
-    marginTop:10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.06)",
-    height: CARD_H,
+    backgroundColor: '#202019',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
   },
-  textCol: { flex: 1, paddingRight: 12, justifyContent: "flex-start" },
-  title: { color: "#FEFEFD", fontSize: 16, fontWeight: "700",textAlign:"center", marginBottom:20},
-  body: { color: "#CDCCC7", marginTop: 4, lineHeight: 20 },
-  date: { color: "#CDCCC7", fontSize: 12, opacity: 0.8, marginTop: "auto"},
-  imageWrap: {
-    width: 140,                               // fiksna širina slike (desna strana)
-    borderRadius: 16,
-    overflow: "hidden",                       // da dobijemo zaobljene uglove
+
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  image: { width: "100%", height: "100%", borderRadius: 16 },
+
+  // VEĆA SLIKA
+  thumbWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#2A2B22',
+    marginRight: 14,
+  },
+  thumb: {
+    width: '100%',
+    height: '100%',
+  },
+
+  textBlock: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+
+  title: {
+    color: '#FDFBED',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  body: {
+    color: 'rgba(230,230,220,0.85)',
+    fontSize: 13,
+    lineHeight: 17,
+  },
+
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  dateText: {
+    fontSize: 12,
+    color: 'rgba(200,200,190,0.7)',
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(250, 240, 67, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(250, 240, 67, 0.7)',
+  },
+  chipText: {
+    fontSize: 12,
+    color: '#FDFBED',
+    fontWeight: '700',
+  },
 });

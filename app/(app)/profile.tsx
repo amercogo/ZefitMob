@@ -1,125 +1,469 @@
-import { View, Text, StyleSheet, TextInput, Pressable } from "react-native";
-import { Image } from "expo-image";
-import { router } from "expo-router";
-import { useAuth } from "../../providers/AuthProvider";
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
+import { useAuth } from '../../providers/AuthProvider';
+import { supabase } from '../../lib/supabase';
+import { Clanarina, TipClanarine } from '../../lib/database.types';
 
-export default function Profile() {
+export default function ProfileScreen() {
   const { user, member, signOut } = useAuth();
 
-  const onLogout = async () => {
-    // Sign out using Supabase auth
-    await signOut();
-    // Redirect to login - the protected layout will handle this automatically
-    router.replace("/(auth)/login");
+  const [loading, setLoading] = useState(true);
+  const [membership, setMembership] = useState<Clanarina | null>(null);
+  const [membershipType, setMembershipType] = useState<TipClanarine | null>(null);
+  const [visitsCount, setVisitsCount] = useState<number | null>(null);
+
+  const loadProfileData = useCallback(async () => {
+    if (!member) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // 1) Aktivna članarina
+      const { data: membershipData } = await supabase
+        .from('clanarine_clanova')
+        .select('*')
+        .eq('clan_id', member.id)
+        .in('status', ['active', 'aktivni', 'pending'])
+        .order('zavrsetak', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (membershipData) {
+        setMembership(membershipData);
+
+        const { data: typeData } = await supabase
+          .from('tipovi_clanarina')
+          .select('*')
+          .eq('id', membershipData.tip_clanarine_id)
+          .single();
+
+        if (typeData) {
+          setMembershipType(typeData);
+        }
+      }
+
+      // 2) Broj dolazaka (ukupno)
+      const { data: visitsData } = await supabase
+        .from('dolasci')
+        .select('id')
+        .eq('clan_id', member.id);
+
+      if (visitsData) {
+        setVisitsCount(visitsData.length);
+      }
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [member]);
+
+  useEffect(() => {
+    loadProfileData();
+  }, [loadProfileData]);
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Odjava',
+      'Da li ste sigurni da se želite odjaviti?',
+      [
+        { text: 'Otkaži', style: 'cancel' },
+        {
+          text: 'Odjavi se',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/(auth)/login');
+            } catch (e) {
+              console.error('Error on sign out:', e);
+            }
+          },
+        },
+      ]
+    );
   };
+
+  if (!member || loading) {
+    return (
+      <>
+        <Stack.Screen
+          options={{
+            title: 'Profil',
+            headerStyle: { backgroundColor: '#050505' },
+            headerTintColor: '#fff',
+          }}
+        />
+        <SafeAreaView style={styles.loadingScreen}>
+          <ActivityIndicator size="large" color="rgba(250, 240, 67, 1)" />
+          <Text style={styles.loadingText}>Učitavanje profila...</Text>
+        </SafeAreaView>
+      </>
+    );
+  }
+
+  // Izračunaj neke label-e
+  const membershipName = membershipType?.naziv ?? 'Nema aktivne članarine';
+  const membershipStatus = membership
+    ? membership.status ?? 'aktivna'
+    : 'nema';
+
+  const membershipExpiresText = membership?.zavrsetak
+    ? new Date(membership.zavrsetak).toLocaleDateString('bs-BA')
+    : '—';
+
+  const memberSinceText = member.napravljeno
+    ? new Date(member.napravljeno as unknown as string).toLocaleDateString('bs-BA')
+    : 'Nepoznato';
+
   return (
-    <View style={s.screen}>
-      {/* Profilna */}
-      <View style={s.header}>
-        <Image
-          source={require("../../assets/images/user.png")}
-          style={s.avatar}
-          contentFit="cover"
-        />
-      </View>
+    <>
+      <Stack.Screen
+        options={{
+          title: 'Moj profil',
+          headerStyle: { backgroundColor: '#050505' },
+          headerTintColor: '#fff',
+        }}
+      />
 
-      {/* Podaci */}
-      <View style={s.form}>
-        <Text style={s.label}>Ime i prezime</Text>
-        <TextInput 
-          style={s.input} 
-          placeholder="Unesi ime i prezime" 
-          placeholderTextColor="#1C1D18"
-          value={member?.ime_prezime || ""}
-          editable={false}
-        />
+      <LinearGradient
+        colors={['#050505', '#11110D', '#1C1D18']}
+        style={styles.bg}
+      >
+        <SafeAreaView style={styles.screen}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Gornja kartica sa avatarom i osnovnim info */}
+            <View style={styles.cardShadow}>
+              <LinearGradient
+                colors={['#FAF043', '#FFE95A', '#F8F2B0']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.profileCard}
+              >
+                {/* Avatar */}
+                <View style={styles.avatarWrapper}>
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarInitial}>
+                      {member.ime_prezime?.[0]?.toUpperCase() ?? 'Z'}
+                    </Text>
+                  </View>
+                </View>
 
-        <Text style={s.label}>Email</Text>
-        <TextInput
-          style={s.input}
-          placeholder="imeprez@example.com"
-          placeholderTextColor="#1C1D18"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={member?.email || user?.email || ""}
-          editable={false}
-        />
+                {/* Ime + email */}
+                <Text style={styles.name}>{member.ime_prezime}</Text>
+                <Text style={styles.email}>{member.email ?? user?.email}</Text>
 
-        <Text style={s.label}>Telefon</Text>
-        <TextInput
-          style={s.input}
-          placeholder="+1234567890"
-          placeholderTextColor="#1C1D18"
-          keyboardType="phone-pad"
-          value={member?.telefon || ""}
-          editable={false}
-        />
+                {/* Clan kod pill */}
+                <View style={styles.codePill}>
+                  <Text style={styles.codePillLabel}>CLAN KOD</Text>
+                  <Text style={styles.codePillValue}>
+                    {member.clan_kod ?? '—'}
+                  </Text>
+                </View>
 
-        <Text style={s.label}>Član kod</Text>
-        <TextInput
-          style={s.input}
-          placeholder="CLAN-XXXX"
-          placeholderTextColor="#1C1D18"
-          value={member?.clan_kod || ""}
-          editable={false}
-        />
+                {/* Brza akcija: Moj barkod */}
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.barcodeBtn,
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] },
+                  ]}
+                  onPress={() => router.push('/(app)/barkod')}
+                >
+                  <Text style={styles.barcodeBtnText}>Prikaži barkod</Text>
+                </Pressable>
+              </LinearGradient>
+            </View>
 
-        <Pressable style={s.resetBtn} onPress={() => { /* TODO: reset password */ }}>
-          <Text style={s.resetTxt}>Reset šifre</Text>
-        </Pressable>
-      </View>
+            {/* Stats kartica */}
+            <View style={styles.statsCard}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Dolazaka</Text>
+                <Text style={styles.statValue}>
+                  {visitsCount !== null ? visitsCount : '—'}
+                </Text>
+              </View>
 
-      {/* Akcije na dnu */}
-      <View style={s.footer}>
-        <Pressable style={s.logoutBtn}  onPress={onLogout}>
-          <Text style={s.logoutTxt}>Odjava</Text>
-        </Pressable>
+              <View style={styles.statDivider} />
 
-        <Pressable onPress={() => { /* TODO: delete account */ }}>
-          <Text style={s.deleteTxt}>Izbriši profil</Text>
-        </Pressable>
-      </View>
-    </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Članarina</Text>
+                <Text style={styles.statValue} numberOfLines={1}>
+                  {membershipName}
+                </Text>
+              </View>
+
+              <View style={styles.statDivider} />
+
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Status</Text>
+                <Text
+                  style={[
+                    styles.statValue,
+                    membership
+                      ? styles.statusActive
+                      : styles.statusInactive,
+                  ]}
+                >
+                  {membership ? 'AKTIVNA' : 'NEMA'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Detalji sekcija */}
+            <View style={styles.detailsCard}>
+              <Text style={styles.detailsTitle}>Detalji profila</Text>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Email</Text>
+                <Text style={styles.detailValue}>
+                  {member.email ?? user?.email ?? '—'}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Telefon</Text>
+                <Text style={styles.detailValue}>
+                  {member.telefon ?? '—'}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Član od</Text>
+                <Text style={styles.detailValue}>{memberSinceText}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Uloga</Text>
+                <Text style={styles.detailValue}>
+                  {member.role ?? 'clan'}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Status članarine</Text>
+                <Text style={styles.detailValue}>
+                  {membershipStatus.toUpperCase()}
+                  {membershipExpiresText !== '—'
+                    ? ` (ističe: ${membershipExpiresText})`
+                    : ''}
+                </Text>
+              </View>
+            </View>
+
+            {/* Odjava */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.logoutBtn,
+                pressed && { opacity: 0.8, transform: [{ scale: 0.99 }] },
+              ]}
+              onPress={handleSignOut}
+            >
+              <Text style={styles.logoutText}>Odjavi se</Text>
+            </Pressable>
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
+    </>
   );
 }
-//Treba se na ovome raditi jos 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#1C1D18", padding: 16 },
-  header: { alignItems: "center", marginTop: 80, marginBottom: 16 },
-  avatar: { width: 110, height: 110, borderRadius: 55, backgroundColor: "rgba(250, 240, 67, 0.90)" },
 
-  form: { gap: 8 },
-  label: { color: "#CDCCC7", fontSize: 13, marginTop: 6 },
-  input: {
-    backgroundColor: "rgba(250, 240, 67, 0.90)",
-    color: "#1C1D18",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: StyleSheet.hairlineWidth,//chat sta je hairlineWidth haa?
-    borderColor: "rgba(255,255,255,0.08)",
+const styles = StyleSheet.create({
+  bg: {
+    flex: 1,
+  },
+  screen: {
+    flex: 1,
+  },
+  loadingScreen: {
+    flex: 1,
+    backgroundColor: '#050505',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FEFEFD',
+    marginTop: 16,
+    fontSize: 16,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 32,
   },
 
-  resetBtn: {
-    alignSelf: "center",
-    marginTop: 10,
-    backgroundColor: "#3E3F3A",
-    borderRadius: 10,
-    paddingVertical: 8,
+  // Gornja kartica
+  cardShadow: {
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.6,
+    shadowRadius: 22,
+    elevation: 12,
+    marginBottom: 18,
+  },
+  profileCard: {
+    borderRadius: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  avatarWrapper: {
+    marginBottom: 12,
+  },
+  avatarCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    backgroundColor: '#141410',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(250, 240, 67, 0.9)',
+  },
+  avatarInitial: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#FAF043',
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#141410',
+    marginTop: 4,
+  },
+  email: {
+    fontSize: 13,
+    color: '#3E3F3A',
+    marginTop: 2,
+  },
+  codePill: {
+    marginTop: 12,
     paddingHorizontal: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.10)",
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(20,20,16,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(20,20,16,0.2)',
   },
-  resetTxt: { color: "#FEFEFD", fontWeight: "600" },
+  codePillLabel: {
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: '#6C6D5C',
+    textAlign: 'center',
+  },
+  codePillValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#141410',
+    textAlign: 'center',
+    marginTop: 1,
+  },
 
-  footer: {  flexDirection: "row",flex: 1, marginTop:-180, alignItems: "center", justifyContent:"space-between" },
-  logoutBtn: {
-    backgroundColor: "rgba(250, 240, 67, 0.90)",
+  barcodeBtn: {
+    marginTop: 16,
+    paddingHorizontal: 20,
     paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    marginLeft:80,
+    borderRadius: 999,
+    backgroundColor: '#141410',
   },
-  logoutTxt: { color: "#101010", fontWeight: "700" },
-  deleteTxt: { color: "#D82121", fontSize: 13,marginRight:80, },
+  barcodeBtnText: {
+    color: '#FAF043',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  // Stats kartica
+  statsCard: {
+    backgroundColor: '#202019',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(220,220,210,0.7)',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FDFBED',
+    textAlign: 'center',
+  },
+  statusActive: {
+    color: '#A2FF7A',
+  },
+  statusInactive: {
+    color: '#FF7A7A',
+  },
+  statDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+
+  // Detalji profila
+  detailsCard: {
+    backgroundColor: '#202019',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginBottom: 24,
+  },
+  detailsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FDFBED',
+    marginBottom: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: 'rgba(220,220,210,0.7)',
+  },
+  detailValue: {
+    fontSize: 13,
+    color: '#FDFBED',
+    maxWidth: '55%',
+    textAlign: 'right',
+  },
+
+  // Logout
+  logoutBtn: {
+    alignSelf: 'center',
+    paddingHorizontal: 26,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: '#3A211F',
+    borderWidth: 1,
+    borderColor: '#FF7A7A',
+  },
+  logoutText: {
+    color: '#FFB2B2',
+    fontWeight: '700',
+    fontSize: 14,
+  },
 });

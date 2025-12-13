@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from 'react';
 import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
@@ -13,7 +19,10 @@ interface AuthContextType {
   member: Clan | null; // Member data from clanovi table
   loading: boolean;
   authInitializing: boolean;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signInWithEmail: (
+    email: string,
+    password: string
+  ) => Promise<{ error: AuthError | null }>;
   signUpWithEmail: (
     email: string,
     password: string,
@@ -35,12 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authInitializing, setAuthInitializing] = useState(true);
 
   /**
-   * Generates a unique clan_kod for a new member
-   * Format: CLAN-{first 8 chars of UUID}
+   * Generates a unique 8-digit barcode value for a new member
+   * Format: 8-digit random number as string (range 10000000-99999999)
    */
-  const generateClanKod = (userId: string): string => {
-    const shortId = userId.replace(/-/g, '').substring(0, 8).toUpperCase();
-    return `CLAN-${shortId}`;
+  const generateBarcodeValue = (): string => {
+    return String(Math.floor(10000000 + Math.random() * 90000000));
+  };
+
+  /**
+   * Generates a unique clan_kod for a new member
+   * Format: ZE-{8-digit barcode_value}
+   */
+  const generateClanKod = (barcodeValue: string): string => {
+    return `ZE-${barcodeValue}`;
   };
 
   /**
@@ -95,10 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Subscribe to auth state changes
-    // This listener fires when:
-    // - User signs in/out
-    // - Session is refreshed
-    // - Token expires
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -107,17 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        // Fetch member data when user signs in or session is restored
         await fetchMember(session.user.id);
       } else {
-        // Clear member data when user signs out
         setMember(null);
       }
 
       setAuthInitializing(false);
     });
 
-    // Cleanup subscription on unmount
     return () => {
       subscription.unsubscribe();
     };
@@ -138,8 +147,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error };
       }
 
-      // Session and user are automatically updated via onAuthStateChange
-      // Member data will be fetched automatically in the listener
       return { error: null };
     } catch (error) {
       return { error: error as AuthError };
@@ -149,7 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Signs up a new user with email and password, then creates a member entry in clanovi table
+   * Signs up a new user with email and password, then creates/updates
+   * a member entry in clanovi table (upsert by id).
    * Links by clanovi.id = auth.users.id
    */
   const signUpWithEmail = async (
@@ -159,43 +167,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     setLoading(true);
     try {
+      console.log('🔴 signUpWithEmail START', { email });
+
       // Step 1: Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
       });
 
+      console.log('🟡 auth.signUp result:', { authData, authError });
+
       if (authError) {
         return { error: authError };
       }
 
-      // Step 2: Create member entry in public.clanovi table
-      // Link by clanovi.id = auth.users.id
+      // Step 2: Upsert member entry in public.clanovi table
       if (authData.user) {
-        const clanKod = generateClanKod(authData.user.id);
-        
-        const { error: memberError } = await supabase.from('clanovi').insert({
-          id: authData.user.id, // Link by UUID: clanovi.id = auth.users.id
-          clan_kod: clanKod,
-          ime_prezime: extraFields.ime_prezime,
-          telefon: extraFields.telefon || null,
-          email: email,
-          status: 'aktivni', // Default status
-          role: 'clan', // Default role for mobile app users
-          // napravljeno will be set by database default (now())
-        });
+        // Generate 8-digit barcode value
+        const barcodeValue = generateBarcodeValue();
+        const clanKod = generateClanKod(barcodeValue);
+
+        console.log('🟡 Generated codes:', { barcodeValue, clanKod });
+
+        const { data: clanData, error: memberError } = await supabase
+          .from('clanovi')
+          .upsert(
+            {
+              id: authData.user.id, // if row exists → UPDATE, else INSERT
+              clan_kod: clanKod,
+              barcode_value: barcodeValue,
+              barcode_image_url: null, // Will be generated via Edge Function
+              ime_prezime: extraFields.ime_prezime,
+              telefon: extraFields.telefon || null,
+              email: email,
+              status: 'aktivni',
+              role: 'clan',
+              // napravljeno stays from existing row or DB default
+            },
+            {
+              onConflict: 'id',
+            }
+          )
+          .select()
+          .single();
+
+        console.log('🟡 clanovi upsert result:', { clanData, memberError });
 
         if (memberError) {
-          console.error('Error creating member:', memberError);
-          // If member creation fails, we should ideally rollback the auth user
-          // For now, we log the error - the user exists but member data is missing
-          return { error: { ...memberError, message: 'Failed to create member profile' } as AuthError };
+          console.error('Error creating/updating member:', memberError);
+          const authError = {
+            name: 'MemberCreationError',
+            message: memberError.message || 'Failed to create member profile',
+            status: 400,
+            code: memberError.code || 'member_creation_failed',
+          } as unknown as AuthError;
+          return { error: authError };
+        }
+
+        // Step 3: Generate barcode image via Edge Function (non-blocking)
+        if (clanData && clanData.id && clanData.barcode_value) {
+          try {
+            console.log('🟣 Calling generate_member_barcode with:', {
+              memberId: clanData.id,
+              barcodeValue: clanData.barcode_value,
+            });
+
+            const { data: fnData, error: fnError } =
+              await supabase.functions.invoke('generate_member_barcode', {
+                body: {
+                  memberId: clanData.id,
+                  barcodeValue: clanData.barcode_value,
+                },
+              });
+
+            console.log('🟢 Edge function result:', { fnData, fnError });
+
+            if (fnError) {
+              console.warn('Barcode function error:', fnError);
+            } else if (authData.user) {
+              // Refresh member data to get updated barcode_image_url
+              await fetchMember(authData.user.id);
+            }
+          } catch (err) {
+            console.warn('Error calling generate_member_barcode:', err);
+            // Don't fail signup if barcode generation fails
+          }
+        } else {
+          console.warn('⚠ clanData missing id or barcode_value:', clanData);
         }
       }
 
-      // Session and member data will be updated via onAuthStateChange
       return { error: null };
     } catch (error) {
+      console.error('Unexpected signup error:', error);
       return { error: error as AuthError };
     } finally {
       setLoading(false);
@@ -212,7 +276,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Error signing out:', error);
       }
-      // Session, user, and member data are cleared via onAuthStateChange
     } catch (error) {
       console.error('Unexpected error signing out:', error);
     } finally {
@@ -246,4 +309,3 @@ export function useAuth() {
   }
   return context;
 }
-

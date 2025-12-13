@@ -63,6 +63,8 @@ export interface Database {
           status: string
           role: string
           napomena: string | null
+          barcode_value: string | null;
+          barcode_image_url: string | null;
         }
         Insert: {
           id?: string
@@ -74,6 +76,8 @@ export interface Database {
           status?: string
           role?: string
           napomena?: string | null
+          barcode_value?: string | null
+          barcode_image_url?: string | null
         }
         Update: {
           id?: string
@@ -85,6 +89,8 @@ export interface Database {
           status?: string
           role?: string
           napomena?: string | null
+          barcode_value?: string | null
+          barcode_image_url?: string | null
         }
         Relationships: []
       }
@@ -162,6 +168,31 @@ export interface Database {
           created_at?: string | null
         }
         Relationships: []
+      }
+      dolasci: {
+        Row: {
+          id: string
+          clan_id: string
+          created_at?: string | null
+        }
+        Insert: {
+          id?: string
+          clan_id: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          clan_id?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dolasci_clan_id_fkey"
+            columns: ["clan_id"]
+            referencedRelation: "clanovi"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
